@@ -8,7 +8,10 @@ class VectorStore:
     Nexora Vector Database & Semantic Retrieval Manager
     Uses ChromaDB or local high-performance Cosine Vector Engine for zero-cost operation.
     """
-    def __init__(self, persist_directory="./data/chroma_db"):
+    def __init__(self, persist_directory=None):
+        if persist_directory is None:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            persist_directory = os.path.abspath(os.path.join(base_dir, "../data/chroma_db"))
         self.persist_directory = persist_directory
         self.chunks_db = []
         self.chroma_collection = None
@@ -23,15 +26,16 @@ class VectorStore:
             client = chromadb.PersistentClient(path=self.persist_directory)
             self.chroma_collection = client.get_or_create_collection(name="nexora_knowledge_base")
             print("[VectorStore] ChromaDB initialized successfully.")
-        except Exception as e:
-            print(f"[VectorStore] Using Native High-Speed Cosine Vector Engine ({e})")
+        except BaseException as e:
+            print(f"[VectorStore] ChromaDB init error ({e}). Using Native High-Speed Cosine Vector Engine.")
+            self.chroma_collection = None
 
         try:
             from sentence_transformers import SentenceTransformer
             self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
             print("[VectorStore] SentenceTransformers embedder loaded.")
-        except Exception as e:
-            print(f"[VectorStore] Embedder running in lightweight vector mode.")
+        except BaseException as e:
+            print(f"[VectorStore] Embedder running in lightweight vector mode ({e}).")
 
     def add_chunks(self, chunks: List[Dict[str, Any]]):
         if not chunks:
