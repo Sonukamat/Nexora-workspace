@@ -154,7 +154,7 @@ class AgentManager:
         """
         Generates Audio Overview podcast script for Nexora studio.
         """
-        chunks = self.vector_store.get_document_sample_chunks(file_ids=file_ids, max_chunks=30)
+        chunks = self.vector_store.get_document_sample_chunks(file_ids=file_ids, max_chunks=250)
         podcast_data = self.llm_provider.generate_podcast_script(chunks)
         return podcast_data
 
@@ -162,7 +162,7 @@ class AgentManager:
         """
         Generates Nexora Studio Artifact (Briefing Doc, Study Guide, FAQ, Timeline, TOC).
         """
-        chunks = self.vector_store.get_document_sample_chunks(file_ids=file_ids, max_chunks=40)
+        chunks = self.vector_store.get_document_sample_chunks(file_ids=file_ids, max_chunks=250)
         return self.llm_provider.generate_studio_artifact(artifact_type, chunks)
 
 

@@ -167,6 +167,8 @@ async def chat_with_agent(
 @app.post("/api/generate-podcast")
 async def generate_podcast(file_ids: Optional[str] = Form(None)):
     file_ids_list = [fid.strip() for fid in file_ids.split(",") if fid.strip()] if file_ids else None
+    if not file_ids_list and uploaded_docs:
+        file_ids_list = [uploaded_docs[-1]["file_id"]]
     podcast_data = agent_manager.generate_podcast(file_ids=file_ids_list)
     return JSONResponse(podcast_data)
 
@@ -176,6 +178,8 @@ async def generate_studio_artifact(
     file_ids: Optional[str] = Form(None)
 ):
     file_ids_list = [fid.strip() for fid in file_ids.split(",") if fid.strip()] if file_ids else None
+    if not file_ids_list and uploaded_docs:
+        file_ids_list = [uploaded_docs[-1]["file_id"]]
     content = agent_manager.generate_studio_artifact(artifact_type, file_ids=file_ids_list)
     return JSONResponse({
         "status": "success",
