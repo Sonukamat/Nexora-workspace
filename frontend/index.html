@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexora – Intelligent Knowledge Studio</title>
+    <!-- Google Fonts: Google Sans & Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Marked.js for Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="/styles.css?v=3">
+    <link rel="stylesheet" href="/static/styles.css?v=3">
+</head>
+<body class="theme-dark">
+    <div class="workspace-container">
+
+        <!-- Nexora Header Navbar -->
+        <header class="app-navbar">
+            <div class="nav-left">
+                <div class="brand-logo">
+                    <img src="/logo.png" alt="Nexora Logo" class="brand-icon-img">
+                    <span class="brand-name">NEXORA<span class="brand-suffix">.AI</span></span>
+                    <span class="notebook-badge">Studio</span>
+                </div>
+            </div>
+
+
+            <div class="nav-center">
+                <div class="nav-agent-selector">
+                    <button class="agent-nav-btn active" data-agent="auto" onclick="selectAgentMode('auto')">
+                        <i data-lucide="sparkles" class="icon-xs"></i> Auto Synthesizer
+                    </button>
+                    <button class="agent-nav-btn" data-agent="SummaryAgent" onclick="selectAgentMode('SummaryAgent')">
+                        <i data-lucide="layers" class="icon-xs"></i> Executive Summary
+                    </button>
+                    <button class="agent-nav-btn" data-agent="ResearchAgent" onclick="selectAgentMode('ResearchAgent')">
+                        <i data-lucide="compass" class="icon-xs"></i> Deep Research
+                    </button>
+                    <button class="agent-nav-btn" data-agent="CitationAgent" onclick="selectAgentMode('CitationAgent')">
+                        <i data-lucide="shield-check" class="icon-xs"></i> Source Audit
+                    </button>
+                </div>
+            </div>
+
+            <div class="nav-right">
+                <div class="sidebar-footer-health">
+                    <span class="status-indicator"></span>
+                    <span style="font-size:0.8rem; color: #a8c7fa; font-weight:500;">Grounded Engine</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main 3-Column Layout -->
+        <div class="app-body-3col">
+
+            <!-- COLUMN 1: SOURCES SIDEBAR -->
+            <aside class="panel-column sources-panel">
+                <div class="panel-header">
+                    <div class="header-title-wrap">
+                        <i data-lucide="file-text" class="icon-sm text-blue"></i>
+                        <h2>Sources</h2>
+                        <span class="count-chip" id="doc-count">0</span>
+                    </div>
+                    <button id="btn-select-all" onclick="toggleSelectAllSources()" class="btn-text-ghost">
+                        Select All
+                    </button>
+                </div>
+
+                <!-- Source Upload Drop Box -->
+                <div class="upload-box-wrapper">
+                    <div class="file-drop-box" id="drop-zone">
+                        <div class="drop-icon-wrap">
+                            <i data-lucide="plus-circle" class="icon-md"></i>
+                        </div>
+                        <div class="drop-text">
+                            <strong>Add Sources</strong>
+                            <span>PDF, DOCX, CSV, Text, Notes</span>
+                        </div>
+                        <input type="file" id="file-input" hidden accept=".pdf,.docx,.doc,.pptx,.ppt,.txt,.csv,.png,.jpg,.jpeg" multiple>
+                    </div>
+
+                    <!-- Upload Progress -->
+                    <div class="upload-progress-card" id="processing-timeline" style="display:none;">
+                        <div class="progress-info">
+                            <span id="process-step-title">Indexing source...</span>
+                            <span id="process-step-percent">0%</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sources List with Checkboxes -->
+                <div class="sources-list" id="doc-list">
+                    <div class="empty-state">
+                        <i data-lucide="folder-plus" class="empty-icon"></i>
+                        <p>No sources uploaded</p>
+                        <span>Add documents to begin querying and building notes.</span>
+                    </div>
+                </div>
+
+                <div class="sources-footer">
+                    <button id="btn-clear-all" onclick="clearAllDocuments()" class="btn-danger-ghost" style="display:none;">
+                        <i data-lucide="trash-2"></i> Remove All Sources
+                    </button>
+                </div>
+            </aside>
+
+
+            <!-- COLUMN 2: CENTER CHAT WORKSPACE -->
+            <main class="panel-column chat-panel">
+
+                <!-- Messages Stream Container -->
+                <div class="chat-container" id="chat-messages">
+                    <div class="notebook-welcome-hero">
+                        <div class="hero-sparkle-icon">
+                            <i data-lucide="sparkles" class="icon-hero"></i>
+                        </div>
+                        <h2>Nexora Knowledge Studio</h2>
+                        <p>Ask anything about your selected sources. Responses are strictly grounded with citations.</p>
+
+                        <!-- Suggested Starter Prompts -->
+                        <div class="suggested-grid">
+                            <button class="suggested-card" onclick="setQuery('Summarize all selected sources into core takeaways.')">
+                                <div class="card-icon blue"><i data-lucide="align-left"></i></div>
+                                <div class="card-content">
+                                    <strong>Summarize Sources</strong>
+                                    <span>High-level overview of active documents</span>
+                                </div>
+                            </button>
+
+                            <button class="suggested-card" onclick="setQuery('Create study notes with key terms and practice Q&As.')">
+                                <div class="card-icon purple"><i data-lucide="edit-3"></i></div>
+                                <div class="card-content">
+                                    <strong>Generate Study Notes</strong>
+                                    <span>Create revision guide with exam Q&As</span>
+                                </div>
+                            </button>
+
+                            <button class="suggested-card" onclick="setQuery('What are the key findings, topics, and authors across these sources?')">
+                                <div class="card-icon amber"><i data-lucide="compass"></i></div>
+                                <div class="card-content">
+                                    <strong>Key Insights & Authors</strong>
+                                    <span>Extract topics & author information</span>
+                                </div>
+                            </button>
+
+                            <button class="suggested-card" onclick="setQuery('Synthesize a full executive intelligence report.')">
+                                <div class="card-icon green"><i data-lucide="bar-chart-3"></i></div>
+                                <div class="card-content">
+                                    <strong>Executive Intelligence Report</strong>
+                                    <span>Comprehensive multi-section summary</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Floating Chat Control Dock -->
+                <div class="chat-input-dock">
+                    <div class="dock-inner">
+                        <div class="dock-input-row">
+                            <textarea id="chat-input" placeholder="Ask a question about selected sources..." rows="1"></textarea>
+                            <button id="send-btn" class="send-action-btn" onclick="sendMessage()">
+                                <i data-lucide="arrow-up"></i>
+                            </button>
+                        </div>
+                        <div class="dock-bottom-meta">
+                            <span id="active-agent-badge"><i data-lucide="sparkles"></i> Auto Synthesizer</span>
+                            <span id="source-scope-badge"><i data-lucide="layers"></i> <span id="scope-count-text">0 sources selected</span></span>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+
+
+            <!-- COLUMN 3: STUDIO & AUDIO OVERVIEW -->
+            <aside class="panel-column studio-panel">
+                <div class="panel-header">
+                    <div class="header-title-wrap">
+                        <i data-lucide="layout-grid" class="icon-sm text-purple"></i>
+                        <h2>Studio</h2>
+                        <span class="count-chip" id="notes-count">0</span>
+                    </div>
+                    <button onclick="createNewNoteModal()" class="btn-text-ghost">
+                        <i data-lucide="plus"></i> Add Note
+                    </button>
+                </div>
+
+                <div class="studio-scroll-area">
+
+                    <!-- AUDIO OVERVIEW (PODCAST GENERATOR) CARD -->
+                    <div class="podcast-studio-card">
+                        <div class="podcast-card-header">
+                            <div class="podcast-badge">
+                                <i data-lucide="headphones" class="icon-xs"></i>
+                                <span>AUDIO OVERVIEW</span>
+                            </div>
+                            <span class="podcast-subtitle">Deep Dive Conversation</span>
+                        </div>
+
+                        <div class="podcast-content-body" id="podcast-body">
+                            <div class="podcast-hosts-row">
+                                <div class="host-badge host-alex">
+                                    <span class="host-avatar">A</span>
+                                    <span>Alex (Host)</span>
+                                </div>
+                                <div class="host-badge host-jordan">
+                                    <span class="host-avatar">J</span>
+                                    <span>Jordan (Analyst)</span>
+                                </div>
+                            </div>
+                            <p class="podcast-desc">Synthesize selected sources into an engaging 2-host AI podcast discussion.</p>
+
+                            <button id="btn-gen-podcast" class="btn-primary-podcast" onclick="generateAudioOverview()">
+                                <i data-lucide="mic"></i> Generate Audio Overview
+                            </button>
+                        </div>
+
+                        <!-- Interactive Audio Player (when generated) -->
+                        <div class="podcast-player-box" id="podcast-player" style="display:none;">
+                            <div class="player-controls-row">
+                                <button id="btn-play-podcast" onclick="togglePodcastPlayback()" class="btn-play-circle">
+                                    <i data-lucide="play" id="play-icon"></i>
+                                </button>
+                                <div class="player-info">
+                                    <strong id="podcast-title">Audio Overview</strong>
+                                    <span id="podcast-status">Ready to play</span>
+                                </div>
+                            </div>
+                            <div class="podcast-transcript-preview" id="podcast-transcript">
+                                <!-- Dynamic speech lines highlight here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- STUDIO ARTIFACT GENERATOR BUTTONS -->
+                    <div class="studio-section-title">
+                        <span>Notebook Artifacts</span>
+                    </div>
+
+                    <div class="artifact-buttons-grid">
+                        <button class="artifact-btn" onclick="generateStudioArtifact('briefing_doc')">
+                            <i data-lucide="clipboard-list" class="icon-blue"></i>
+                            <span>Briefing Doc</span>
+                        </button>
+                        <button class="artifact-btn" onclick="generateStudioArtifact('study_guide')">
+                            <i data-lucide="book-open" class="icon-purple"></i>
+                            <span>Study Guide</span>
+                        </button>
+                        <button class="artifact-btn" onclick="generateStudioArtifact('faq')">
+                            <i data-lucide="help-circle" class="icon-amber"></i>
+                            <span>FAQ</span>
+                        </button>
+                        <button class="artifact-btn" onclick="generateStudioArtifact('timeline')">
+                            <i data-lucide="clock" class="icon-green"></i>
+                            <span>Timeline</span>
+                        </button>
+                        <button class="artifact-btn" onclick="generateStudioArtifact('toc')">
+                            <i data-lucide="list" class="icon-rose"></i>
+                            <span>Outline</span>
+                        </button>
+                    </div>
+
+                    <!-- SAVED / PINNED NOTES GRID -->
+                    <div class="studio-section-title">
+                        <span>Pinned Notes</span>
+                    </div>
+
+                    <div class="notes-grid" id="notes-grid">
+                        <div class="empty-state-notes">
+                            <i data-lucide="bookmark" class="empty-icon-sm"></i>
+                            <p>No pinned notes yet</p>
+                            <span>Click "Save to Note" on any chat response to pin it here.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </aside>
+
+        </div>
+    </div>
+
+    <!-- Script imports -->
+    <script src="/app.js?v=3"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

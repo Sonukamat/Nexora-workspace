@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+dist/
+*.egg-info/
+venv/
+.venv/
+
+# Environment variables
+.env
+.env.local
+
+# Local database & temp uploads
+*.sqlite3
+data/chroma_db/
+backend/data/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
