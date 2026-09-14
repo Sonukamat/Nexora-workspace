@@ -128,8 +128,17 @@ class DocumentProcessor:
             prs = Presentation(file_path)
             for idx, slide in enumerate(prs.slides):
                 slide_text = []
+                has_image = False
+                for shape in slide.shapes:
+                    if hasattr(shape, "image") or getattr(shape, "shape_type", None) == 13: # MSO_SHAPE_TYPE.PICTURE
+                        has_image = True
+
                 self._extract_shapes_text(slide.shapes, slide_text)
-                pages.append((idx + 1, "\n".join(slide_text)))
+
+                if not slide_text and has_image:
+                    slide_text.append(f"[Slide {idx+1}: Scanned Image Content / Picture Slide]")
+
+                pages.append((idx + 1, "\n".join(slide_text) if slide_text else f"[Slide {idx+1}: Visual Slide]"))
         except Exception as e:
             print(f"[DocumentProcessor] pptx extraction fallback: {e}")
             pages = self._extract_text(file_path)
