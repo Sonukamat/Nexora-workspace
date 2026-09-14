@@ -504,29 +504,37 @@ class LLMProvider:
             return f"# 📋 Briefing Document: {primary_doc}\n\nUnable to extract readable text sentences from source."
 
         if artifact_type == "briefing_doc":
-            overview_sents = sentences[:5]
-            key_points_sents = sentences[5:20] if len(sentences) >= 20 else sentences[3:]
-            deep_analysis_sents = sentences[20:35] if len(sentences) >= 35 else sentences[len(sentences)//2:]
+            total_s = len(sentences)
+            q1 = max(1, total_s // 4)
+            q2 = max(2, total_s // 2)
+            q3 = max(3, (total_s * 3) // 4)
 
-            overview_text = " ".join([s['text'] for s in overview_sents])
-            key_points_formatted = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in key_points_sents])
-            deep_analysis_formatted = "\n\n".join([f"**Analysis (Page {s['page']})**:\n{s['text']}" for s in deep_analysis_sents])
-            conclusions_formatted = "\n".join([f"1. **Core Takeaway (Page {s['page']})**: {s['text']}" for s in sentences[-4:]])
+            overview_sents = sentences[0:q1]
+            key_points_sents = sentences[q1:q2]
+            deep_analysis_sents = sentences[q2:q3]
+            conclusion_sents = sentences[q3:]
+
+            overview_text = " ".join([s['text'] for s in overview_sents[:6]])
+            key_points_formatted = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in key_points_sents[:8]])
+            deep_analysis_formatted = "\n\n".join([f"**Analysis (Page {s['page']})**:\n{s['text']}" for s in deep_analysis_sents[:8]])
+            conclusions_formatted = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in conclusion_sents[:8]])
+
+            max_pg = max([s['page'] for s in sentences]) if sentences else 1
 
             return (
                 f"# 📋 Executive Briefing Document: `{primary_doc}`\n"
-                f"**Source Coverage**: {len(sentences)} key statements analyzed across pages 1-{sentences[-1]['page']}\n\n"
+                f"**Source Coverage**: {total_s} key statements analyzed across full document (Pages 1–{max_pg})\n\n"
                 f"---\n\n"
-                f"## 1. Executive Summary & Synthesis\n"
+                f"## 1. Executive Summary & Synthesis (Pages 1–{max(1, max_pg//4)})\n"
                 f"{overview_text}\n\n"
-                f"## 2. Core Concepts & Operational Principles\n"
+                f"## 2. Core Concepts & Operational Principles (Pages {max(1, max_pg//4)+1}–{max(1, max_pg//2)})\n"
                 f"{key_points_formatted}\n\n"
-                f"## 3. Deep Methodological & Technical Analysis\n"
+                f"## 3. Deep Methodological & Technical Analysis (Pages {max(1, max_pg//2)+1}–{max(1, (max_pg*3)//4)})\n"
                 f"{deep_analysis_formatted}\n\n"
-                f"## 4. Key Conclusions & Strategic Takeaways\n"
+                f"## 4. Key Conclusions & Strategic Takeaways (Pages {max(1, (max_pg*3)//4)+1}–{max_pg})\n"
                 f"{conclusions_formatted}\n\n"
                 f"---\n"
-                f"📌 *Synthesized directly from `{primary_doc}`.*"
+                f"📌 *Synthesized directly from `{primary_doc}` across pages 1 to {max_pg}.*"
             )
 
         elif artifact_type == "study_guide":
