@@ -1,3 +1,12 @@
+# Environment variables & Secret Keys
+.env
+.env.*
+*.env
+*.pem
+*.key
+secrets/
+secrets.*
+
 # Python
 __pycache__/
 *.py[cod]
@@ -11,13 +20,11 @@ dist/
 venv/
 .venv/
 
-# Environment variables
-.env
-.env.local
-
 # Local database & temp uploads
 *.sqlite3
 data/chroma_db/
+data/uploads/*
+!data/uploads/.gitkeep
 backend/data/
 
 # OS / Editor
