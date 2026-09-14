@@ -128,13 +128,31 @@ class DocumentProcessor:
             prs = Presentation(file_path)
             for idx, slide in enumerate(prs.slides):
                 slide_text = []
-                for shape in slide.shapes:
-                    if hasattr(shape, "text") and shape.text:
-                        slide_text.append(shape.text)
+                self._extract_shapes_text(slide.shapes, slide_text)
                 pages.append((idx + 1, "\n".join(slide_text)))
-        except Exception:
+        except Exception as e:
+            print(f"[DocumentProcessor] pptx extraction fallback: {e}")
             pages = self._extract_text(file_path)
         return pages
+
+    def _extract_shapes_text(self, shapes, text_list):
+        for shape in shapes:
+            try:
+                if shape.has_text_frame:
+                    for paragraph in shape.text_frame.paragraphs:
+                        t = paragraph.text.strip()
+                        if t and t not in text_list:
+                            text_list.append(t)
+                elif shape.has_table:
+                    for row in shape.table.rows:
+                        for cell in row.cells:
+                            t = cell.text.strip()
+                            if t and t not in text_list:
+                                text_list.append(t)
+                elif hasattr(shape, "shapes"):
+                    self._extract_shapes_text(shape.shapes, text_list)
+            except Exception:
+                continue
 
     def _extract_image_ocr(self, file_path, filename):
         return [(1, f"[OCR Content: {filename}]")]

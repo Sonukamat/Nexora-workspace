@@ -148,7 +148,7 @@ class LLMProvider:
             raw_sents = re.split(r'(?<=[.!?])\s+|\n+', text)
             for s in raw_sents:
                 clean_s = s.strip()
-                if len(clean_s) > 25 and not any(ign in clean_s.lower() for ign in ["re-publisher", "all rights reserved", "isbn", "printed in"]):
+                if len(clean_s) >= 10 and not any(ign in clean_s.lower() for ign in ["re-publisher", "all rights reserved", "isbn", "printed in"]):
                     if clean_s.lower() not in seen_sentences:
                         seen_sentences.add(clean_s.lower())
                         all_sentences.append({
@@ -180,48 +180,39 @@ class LLMProvider:
 
         if "summary" in q_lower or "summarize" in q_lower or agent_name == "SummaryAgent":
             intro_p = " ".join([s['text'] for s in all_sentences[:3]])
-            
-            # Filter out repetitive header/intro sentences from body sections
-            body_sentences = [
-                s for s in all_sentences 
-                if not any(ign in s['text'].lower() for ign in ["learning objectives of co-1", "introduction to data science co-1", "exam notes b.tech cse"])
-            ]
+            max_pg = max([s['page'] for s in all_sentences]) if all_sentences else 1
 
-            # Group sentences into clean thematic sections
-            evolution_sents = [s for s in body_sentences if any(k in s['text'].lower() for k in ["stage", "era", "evolution", "history", "warehousing", "big data", "agentic"])]
-            components_sents = [s for s in body_sentences if any(k in s['text'].lower() for k in ["component", "statistics", "programming", "domain", "overlap", "interdisciplinary", "venn", "danger zone"])]
-            process_sents = [s for s in body_sentences if any(k in s['text'].lower() for k in ["process", "lifecycle", "pipeline", "collection", "cleaning", "preprocessing", "eda", "modelling", "validation", "deployment"])]
-            analytics_sents = [s for s in body_sentences if any(k in s['text'].lower() for k in ["bi", "business intelligence", "descriptive", "predictive", "prescriptive", "analytics"])]
-            ethics_sents = [s for s in body_sentences if any(k in s['text'].lower() for k in ["ethical", "privacy", "security", "bias", "consent", "transparency", "applications", "healthcare", "finance"])]
+            # Universal Section Distribution across the entire document page spectrum
+            total_s = len(all_sentences)
+            step = max(1, total_s // 5)
+            sec1_sents = all_sentences[0:step]
+            sec2_sents = all_sentences[step:step*2]
+            sec3_sents = all_sentences[step*2:step*3]
+            sec4_sents = all_sentences[step*3:step*4]
+            sec5_sents = all_sentences[step*4:]
 
-            if not evolution_sents: evolution_sents = body_sentences[1:8]
-            if not components_sents: components_sents = body_sentences[8:15]
-            if not process_sents: process_sents = body_sentences[15:22]
-            if not analytics_sents: analytics_sents = body_sentences[22:29]
-            if not ethics_sents: ethics_sents = body_sentences[29:38]
-
-            sec1 = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in evolution_sents[:8]])
-            sec2 = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in components_sents[:8]])
-            sec3 = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in process_sents[:8]])
-            sec4 = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in analytics_sents[:8]])
-            sec5 = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in ethics_sents[:8]])
+            sec1 = "\n".join([f"• **[Page/Slide {s['page']}]**: {s['text']}" for s in sec1_sents[:6]])
+            sec2 = "\n".join([f"• **[Page/Slide {s['page']}]**: {s['text']}" for s in sec2_sents[:6]])
+            sec3 = "\n".join([f"• **[Page/Slide {s['page']}]**: {s['text']}" for s in sec3_sents[:6]])
+            sec4 = "\n".join([f"• **[Page/Slide {s['page']}]**: {s['text']}" for s in sec4_sents[:6]])
+            sec5 = "\n".join([f"• **[Page/Slide {s['page']}]**: {s['text']}" for s in sec5_sents[:6]])
 
             return (
-                f"**\"{doc_name}\"** contains comprehensive, exam-oriented study notes and a foundational guide covering the discipline's history, methodology, operational processes, applications, and ethical dimensions.\n\n"
+                f"**\"{doc_name}\"** contains comprehensive material covering pages/slides 1 to {max_pg}.\n\n"
                 f"{intro_p}\n\n"
-                f"Below is a detailed summary of the core topics covered in the notes:\n\n"
-                f"### 1. Historical Evolution of Data Science\n"
+                f"Below is a structured summary broken down across the entire document:\n\n"
+                f"### 1. Initial Foundations & Core Introduction (Pages/Slides 1–{max(1, max_pg//5)})\n"
                 f"{sec1}\n\n"
-                f"### 2. Core Components of Data Science\n"
+                f"### 2. Core Concepts & Definitions (Pages/Slides {max(1, max_pg//5)+1}–{max(1, (max_pg*2)//5)})\n"
                 f"{sec2}\n\n"
-                f"### 3. The Data Science Process & Analytics Pipeline\n"
+                f"### 3. Detailed Frameworks & Key Principles (Pages/Slides {max(1, (max_pg*2)//5)+1}–{max(1, (max_pg*3)//5)})\n"
                 f"{sec3}\n\n"
-                f"### 4. Data Science vs. Business Intelligence (BI)\n"
+                f"### 4. Advanced Processes & Comparative Analysis (Pages/Slides {max(1, (max_pg*3)//5)+1}–{max(1, (max_pg*4)//5)})\n"
                 f"{sec4}\n\n"
-                f"### 5. Applications, Ethical Considerations & Data Privacy\n"
+                f"### 5. Summary Insights & Final Takeaways (Pages/Slides {max(1, (max_pg*4)//5)+1}–{max_pg})\n"
                 f"{sec5}\n\n"
                 f"---\n"
-                f"*Grounding Audit: Analyzed {len(all_sentences)} key statements across pages 1 to {all_sentences[-1]['page']}.*"
+                f"*Grounding Audit: Analyzed {total_s} key statements across pages/slides 1 to {max_pg}.*"
             )
 
 
@@ -635,38 +626,37 @@ class LLMProvider:
 
         elif artifact_type == "toc":
             toc_entries = []
-            
-            # Smart heading finder: find lines that look like actual document headings or section titles
-            headings = []
+            max_pg = max([s['page'] for s in sentences]) if sentences else 1
+
+            # Group first prominent sentence of each page/slide to build full Table of Contents
+            page_map = {}
             for s in sentences:
-                txt = s['text'].strip()
-                if re.match(r'^\d+(\.\d+)*\s+[A-Z]', txt) or any(k in txt.lower() for k in ["section", "chapter", "unit", "evolution", "components", "process", "business intelligence", "ethical", "privacy", "security", "applications"]):
-                    headings.append(s)
+                p = s['page']
+                if p not in page_map:
+                    page_map[p] = s
 
-            if not headings:
-                headings = sentences
+            sampled_pages = sorted(page_map.items(), key=lambda x: x[0])
+            step = max(1, len(sampled_pages) // 15)
+            sampled_items = sampled_pages[::step][:15]
 
-            step = max(1, len(headings) // 10)
-            sampled = headings[::step][:10]
-
-            for i, s in enumerate(sampled):
+            for idx, (pg_num, s) in enumerate(sampled_items):
                 txt = s['text']
                 clean_title = re.sub(r'^[•\-\d\.]+\s*', '', txt)
                 clean_title = clean_title.split(":")[0].split("—")[0].strip()
                 if len(clean_title) > 60:
                     clean_title = clean_title[:60] + "..."
-                if not clean_title or len(clean_title) < 5:
-                    clean_title = f"Data Science Topic {i+1}"
+                if not clean_title or len(clean_title) < 3:
+                    clean_title = f"Topic Section {idx+1}"
 
                 toc_entries.append(
-                    f"### Module {i+1}: {clean_title} *(Page {s['page']})*\n"
+                    f"### Slide / Section {idx+1}: {clean_title} *(Page/Slide {pg_num})*\n"
                     f"> \"{txt[:160]}{'...' if len(txt)>160 else ''}\"\n"
                 )
 
             toc_items = "\n\n".join(toc_entries)
             return (
                 f"# 📑 Detailed Table of Contents & Structure Outline: `{primary_doc}`\n"
-                f"**Document Page Scope**: Pages 1 to {sentences[-1]['page']} ({len(sentences)} key statements analyzed across full file)\n\n"
+                f"**Document Scope**: Pages/Slides 1 to {max_pg} ({len(sentences)} key statements analyzed across full file)\n\n"
                 f"{toc_items}"
             )
 
