@@ -33,12 +33,15 @@ app.add_middleware(
 # Directories (Absolute paths)
 UPLOAD_DIR = os.path.abspath(os.path.join(BASE_DIR, "../data/uploads"))
 FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "../frontend"))
+CHROMA_DIR = os.path.abspath(os.path.join(BASE_DIR, "../data/chroma_db"))
+
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(FRONTEND_DIR, exist_ok=True)
+os.makedirs(CHROMA_DIR, exist_ok=True)
 
 # Initialize Core Services
 doc_processor = DocumentProcessor()
-vector_store = VectorStore()
+vector_store = VectorStore(persist_directory=CHROMA_DIR)
 llm_provider = LLMProvider()
 agent_manager = AgentManager(vector_store, llm_provider)
 
@@ -110,6 +113,7 @@ async def delete_document(file_id: str):
     if not doc_to_delete:
         raise HTTPException(status_code=404, detail="Document not found")
 
+    # Remove file from uploads folder if present
     file_path = os.path.join(UPLOAD_DIR, doc_to_delete["filename"])
     if os.path.exists(file_path):
         try:
@@ -117,7 +121,10 @@ async def delete_document(file_id: str):
         except Exception:
             pass
 
+    # Remove from list
     uploaded_docs = [d for d in uploaded_docs if d["file_id"] != file_id]
+
+    # Remove chunks from vector DB
     vector_store.delete_chunks_by_file_id(file_id)
 
     return JSONResponse({
