@@ -158,39 +158,35 @@ class DocumentProcessor:
     def _create_chunks(self, pages_data, file_id, filename):
         chunks = []
         chunk_counter = 0
-        total_words_processed = 0
 
         for page_num, page_text in pages_data:
             words = page_text.split()
             if not words:
                 continue
 
+            # Slide/Page level chunking
+            effective_chunk_size = 150 if filename.lower().endswith(('.pptx', '.ppt')) else self.chunk_size
+
             i = 0
             while i < len(words):
-                chunk_words = words[i:i + self.chunk_size]
+                chunk_words = words[i:i + effective_chunk_size]
                 chunk_text = " ".join(chunk_words)
                 chunk_id = f"{file_id}_c{chunk_counter}"
-
-                # Calculate realistic page number based on text position
-                estimated_page = max(page_num, (total_words_processed + i) // 250 + 1)
 
                 chunks.append({
                     "chunk_id": chunk_id,
                     "file_id": file_id,
                     "filename": filename,
-                    "page_number": max(1, estimated_page),
+                    "page_number": max(1, page_num),
                     "text": chunk_text,
                     "word_count": len(chunk_words),
                     "token_estimate": int(len(chunk_words) * 1.3)
                 })
 
-
                 chunk_counter += 1
-                i += (self.chunk_size - self.chunk_overlap)
-                if i <= 0:
-                    i = self.chunk_size
-
-            total_words_processed += len(words)
+                i += (effective_chunk_size - self.chunk_overlap)
+                if i <= 0 or effective_chunk_size <= self.chunk_overlap:
+                    i = len(words)
 
         return chunks
 

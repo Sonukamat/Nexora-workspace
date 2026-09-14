@@ -327,33 +327,45 @@ class LLMProvider:
     def _generate_study_notes(self, doc_name: str, sentences: list, context_chunks: list) -> str:
         """
         Generates structured revision & study notes with key definitions and practice Q&As.
+        Covering uniformly across all pages/slides from start to end.
         """
-        notes_bullets = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in sentences[:15]])
-        takeaways_bullets = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in sentences[15:25] if len(sentences) > 15] or [f"• **[Page {s['page']}]**: {s['text']}" for s in sentences[5:10]])
+        if not sentences:
+            return f"# 📝 Comprehensive Study Notes: `{doc_name}`\n\nNo readable content found."
+
+        # Uniform sampling across full page spectrum (beginning, middle, end)
+        total_s = len(sentences)
+        step = max(1, total_s // 25)
+        sampled_all = sentences[::step]
+
+        notes_bullets = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in sampled_all[:15]])
+        takeaways_bullets = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in sampled_all[15:28]] or [f"• **[Page {s['page']}]**: {s['text']}" for s in sampled_all[:5]])
 
         # Dynamically build practice questions based on actual document text!
         qa_items = []
-        for idx, s in enumerate(sentences[10:16] if len(sentences) >= 16 else sentences[2:6]):
-            words = [w for w in s['text'].split() if len(w) > 4 and w.isalpha()]
+        qa_sample = sampled_all[::max(1, len(sampled_all)//6)][:6]
+        for idx, s in enumerate(qa_sample):
+            words = [w.strip(":,.-'\"()") for w in s['text'].split() if len(w) > 4 and w.isalpha()]
             topic_word = words[0] if words else "Core Concept"
             qa_items.append(
-                f"{idx+1}. **Q: Explain the concept of '{topic_word}' referenced on Page {s['page']}?**\n"
+                f"{idx+1}. **Q: Explain the significance of '{topic_word}' discussed on Page {s['page']}?**\n"
                 f"   *Ans*: \"{s['text']}\"\n"
             )
         qa_formatted = "\n".join(qa_items)
 
+        max_pg = max([s['page'] for s in sentences]) if sentences else 1
+
         return (
             f"# 📝 Comprehensive Study & Revision Notes: `{doc_name}`\n"
-            f"**Target Source**: `{doc_name}` | **Analyzed Statements**: {len(sentences)} across pages 1 to {sentences[-1]['page'] if sentences else 1}\n\n"
+            f"**Target Source**: `{doc_name}` | **Analyzed Statements**: {len(sentences)} across pages/slides 1 to {max_pg}\n\n"
             f"---\n\n"
-            f"### 📌 1. Essential Definitions & Key Concepts\n"
+            f"### 📌 1. Essential Definitions & Key Concepts (Pages 1–{max_pg})\n"
             f"{notes_bullets}\n\n"
-            f"### 🔑 2. Advanced Takeaways & Frameworks\n"
+            f"### 🔑 2. Advanced Takeaways & Frameworks Across Full Document\n"
             f"{takeaways_bullets}\n\n"
             f"### ❓ 3. Practice Examination & Viva Defense Questions\n"
             f"{qa_formatted}\n\n"
             f"---\n"
-            f"📌 *Synthesized directly from source `{doc_name}`.*"
+            f"📌 *Synthesized directly from source `{doc_name}` across pages 1 to {max_pg}.*"
         )
 
 
