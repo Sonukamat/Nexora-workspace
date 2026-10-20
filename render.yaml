@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: nexora-workspace
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: HUGGINGFACE_TOKEN
+        sync: false

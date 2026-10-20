@@ -11,9 +11,9 @@
 ```mermaid
 graph TD
     subgraph Team ["👥 3-Member Project Team"]
-        M1["👨‍💻 Member 1 (You / Team Lead)<br/>Lead AI Architect & Core Developer"]
-        M2["⚙️ Member 2<br/>RAG Pipeline & Vector DB Engineer"]
-        M3["🖥️ Member 3<br/>Frontend Developer & QA Tester"]
+        M1["👨‍💻 Sonu Kamat (Team Lead)<br/>Lead AI Architect & Core Developer"]
+        M2["⚙️ Shivam Kumar Pandit<br/>RAG Pipeline & Vector DB Engineer"]
+        M3["🖥️ Shivam Kumar<br/>Frontend Developer & QA Tester"]
     end
 
     M1 -->|Owns| Agents["agents.py & llm_provider.py"]
@@ -23,7 +23,7 @@ graph TD
 
 ---
 
-# 👤 MEMBER 1: TEAM LEAD & AI ARCHITECT (आप - लीड डेवलपर)
+# 👤 MEMBER 1: SONU KAMAT – TEAM LEAD & AI ARCHITECT (Lead AI Developer)
 
 ### 🏷️ Title: Lead AI Systems Architect & Core Developer
 ### 📂 Modules & Code Owned:
@@ -43,7 +43,7 @@ graph TD
 
 ---
 
-# ⚙️ MEMBER 2: RAG & VECTOR DB ENGINEER (टीम मेंबर 2)
+# ⚙️ MEMBER 2: SHIVAM KUMAR PANDIT – RAG & VECTOR DB ENGINEER
 
 ### 🏷️ Title: Data Ingestion & Vector Database Engineer
 ### 📂 Modules & Code Owned:
@@ -62,7 +62,7 @@ graph TD
 
 ---
 
-# 🖥️ MEMBER 3: FRONTEND DEVELOPER & QA ENGINEER (टीम मेंबर 3)
+# 🖥️ MEMBER 3: SHIVAM KUMAR – FRONTEND DEVELOPER & QA ENGINEER
 
 ### 🏷️ Title: Frontend UI/UX Developer & System Testing Lead
 ### 📂 Modules & Code Owned:
@@ -88,6 +88,6 @@ graph TD
 
 | Team Member | Expected Viva Questions to Answer |
 | :--- | :--- |
-| **Member 1 (Lead)** | What is Multi-Agent RAG? How does `AgentManager` assign queries? How does LLM failover routing work? |
-| **Member 2 (RAG)** | What is ChromaDB? Why use `all-MiniLM-L6-v2` embeddings? Why 700-character chunking with 100 overlap? |
-| **Member 3 (Frontend/QA)**| How does FastAPI serve static files? How are citations rendered on UI? How does the report export function work? |
+| **Sonu Kamat (Lead)** | What is Multi-Agent RAG? How does `AgentManager` assign queries? How does LLM failover routing work? |
+| **Shivam Kumar Pandit (RAG)** | What is ChromaDB? Why use `all-MiniLM-L6-v2` embeddings? Why 700-character chunking with 100 overlap? |
+| **Shivam Kumar (Frontend/QA)**| How does FastAPI serve static files? How are citations rendered on UI? How does the report export function work? |

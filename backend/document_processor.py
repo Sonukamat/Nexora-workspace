@@ -191,8 +191,8 @@ class DocumentProcessor:
             if not words:
                 continue
 
-            # Slide/Page level chunking
-            effective_chunk_size = 150 if filename.lower().endswith(('.pptx', '.ppt')) else self.chunk_size
+            # Page/Slide level chunking (200 words per chunk for PDF/DOCX, 100 words for PPTX)
+            effective_chunk_size = 100 if filename.lower().endswith(('.pptx', '.ppt')) else 200
 
             i = 0
             while i < len(words):

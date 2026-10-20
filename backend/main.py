@@ -48,6 +48,31 @@ agent_manager = AgentManager(vector_store, llm_provider)
 # In-memory document registry
 uploaded_docs = []
 
+def sync_existing_documents():
+    global uploaded_docs
+    if os.path.exists(UPLOAD_DIR):
+        existing_files = [f for f in os.listdir(UPLOAD_DIR) if os.path.isfile(os.path.join(UPLOAD_DIR, f))]
+        for filename in existing_files:
+            file_path = os.path.join(UPLOAD_DIR, filename)
+            if any(d["filename"] == filename for d in uploaded_docs):
+                continue
+            try:
+                doc_result = doc_processor.process_file(file_path, filename)
+                vector_store.add_chunks(doc_result["chunks"])
+                uploaded_docs.append({
+                    "file_id": doc_result["file_id"],
+                    "filename": doc_result["filename"],
+                    "file_type": doc_result["file_type"],
+                    "total_pages": doc_result["total_pages"],
+                    "total_chunks": doc_result["total_chunks"],
+                    "uploaded_at": doc_result["uploaded_at"]
+                })
+                print(f"[Nexora Startup] Restored document: {filename} ({doc_result['total_chunks']} chunks)")
+            except Exception as e:
+                print(f"[Nexora Startup] Error restoring {filename}: {e}")
+
+sync_existing_documents()
+
 # Serve CSS and JS explicitly with proper MIME types
 @app.get("/styles.css")
 async def get_css():

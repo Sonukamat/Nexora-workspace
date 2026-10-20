@@ -32,7 +32,11 @@ class VectorStore:
 
         try:
             from sentence_transformers import SentenceTransformer
-            self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
+            try:
+                # Load instantly from local offline cache to prevent HuggingFace network timeouts
+                self.embedder = SentenceTransformer('all-MiniLM-L6-v2', local_files_only=True)
+            except Exception:
+                self.embedder = SentenceTransformer('all-MiniLM-L6-v2')
             print("[VectorStore] SentenceTransformers embedder loaded.")
         except BaseException as e:
             print(f"[VectorStore] Embedder running in lightweight vector mode ({e}).")

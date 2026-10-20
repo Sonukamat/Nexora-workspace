@@ -15,9 +15,9 @@ Submitted in partial fulfillment of the requirement for the award of the degree 
 Department of Computer Science & Engineering  
 
 **Submitted By:**  
-- **Sonu Kamat** (Roll No: 2233XXX)  
-- **Team Member 2** (Roll No: 2233XXX)  
-- **Team Member 3** (Roll No: 2233XXX)  
+- **Sonu Kamat** (Lead AI Architect & Core Developer)  
+- **Shivam Kumar Pandit** (RAG Pipeline & Vector DB Engineer)  
+- **Shivam Kumar** (Frontend Developer & QA Tester)  
 
 **Project Guide:**  
 Er. Tejinder Sharma (Associate Professor) / Faculty Guide  

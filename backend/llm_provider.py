@@ -62,15 +62,46 @@ class LLMProvider:
             "Authorization": f"Bearer {self.hf_token.strip()}",
             "Content-Type": "application/json"
         }
-        models = [
+        
+        # 1. Try Hugging Face Router API (OpenAI Compatible Chat API)
+        router_url = "https://router.huggingface.co/hf-inference/v1/chat/completions"
+        chat_models = [
+            "Qwen/Qwen2.5-72B-Instruct",
+            "meta-llama/Llama-3.2-3B-Instruct",
+            "mistralai/Mistral-7B-Instruct-v0.3",
+            "HuggingFaceH4/zephyr-7b-beta"
+        ]
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Context Information:\n{context_str}\n\nUser Question: {user_prompt}"}
+        ]
+        
+        for m in chat_models:
+            try:
+                payload = {
+                    "model": m,
+                    "messages": messages,
+                    "max_tokens": 1500,
+                    "temperature": 0.3
+                }
+                resp = requests.post(router_url, headers=headers, json=payload, timeout=12)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if 'choices' in data and len(data['choices']) > 0:
+                        return data['choices'][0]['message']['content']
+            except Exception as e:
+                print(f"[LLMProvider] HF Router model '{m}' error: {e}")
+
+        # 2. Legacy API fallback
+        legacy_models = [
             "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-72B-Instruct",
             "https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-3B-Instruct",
             "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.3"
         ]
-
         prompt_text = f"System: {system_prompt}\n\nContext:\n{context_str}\n\nUser Question: {user_prompt}\n\nAssistant Answer:"
 
-        for url in models:
+        for url in legacy_models:
             try:
                 payload = {
                     "inputs": prompt_text,
@@ -81,25 +112,37 @@ class LLMProvider:
                     data = resp.json()
                     if isinstance(data, list) and len(data) > 0 and 'generated_text' in data[0]:
                         return data[0]['generated_text']
-                    data = resp.json()
-                    if 'choices' in data and len(data['choices']) > 0:
-                        return data['choices'][0]['message']['content']
             except Exception as e:
-                print(f"[LLMProvider] HF Endpoint attempt failed: {e}")
-                
+                print(f"[LLMProvider] HF Legacy model error: {e}")
+
         return None
 
     def _call_gemini(self, system_prompt: str, user_prompt: str, context_str: str) -> str:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.gemini_key.strip()}"
+        models = [
+            "gemini-2.0-flash",
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash-latest"
+        ]
         headers = {"Content-Type": "application/json"}
-        prompt_text = f"{system_prompt}\n\nPlease respond in fluent, professional English.\n\nContext Information:\n{context_str}\n\nUser Question: {user_prompt}"
+        prompt_text = f"{system_prompt}\n\nPlease respond accurately in fluent, clear, and professional language.\n\nContext Information:\n{context_str}\n\nUser Question / Instructions: {user_prompt}"
         payload = {
             "contents": [{"parts": [{"text": prompt_text}]}]
         }
-        resp = requests.post(url, headers=headers, json=payload, timeout=15)
-        if resp.status_code == 200:
-            data = resp.json()
-            return data['candidates'][0]['content']['parts'][0]['text']
+
+        for model_name in models:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.gemini_key.strip()}"
+                resp = requests.post(url, headers=headers, json=payload, timeout=15)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    if 'candidates' in data and len(data['candidates']) > 0:
+                        parts = data['candidates'][0]['content']['parts']
+                        return "".join([p['text'] for p in parts if 'text' in p])
+                else:
+                    print(f"[LLMProvider] Gemini model '{model_name}' status: {resp.status_code} - {resp.text[:100]}")
+            except Exception as e:
+                print(f"[LLMProvider] Gemini model '{model_name}' attempt error: {e}")
         return None
 
     def _call_groq(self, system_prompt: str, user_prompt: str, context_str: str) -> str:
@@ -328,14 +371,21 @@ class LLMProvider:
         step = max(1, total_s // 25)
         sampled_all = sentences[::step]
 
-        notes_bullets = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in sampled_all[:15]])
-        takeaways_bullets = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in sampled_all[15:28]] or [f"• **[Page {s['page']}]**: {s['text']}" for s in sampled_all[:5]])
+        # Filter real text sentences for Q&As and takeaways (excluding placeholder slide tags)
+        real_text_sents = [s for s in sentences if not s['text'].startswith('[Slide ')]
+        if not real_text_sents:
+            real_text_sents = sentences
+
+        notes_bullets = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in sampled_all[:18]])
+        takeaways_bullets = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in real_text_sents[:10]])
 
         # Dynamically build practice questions based on actual document text!
         qa_items = []
-        qa_sample = sampled_all[::max(1, len(sampled_all)//6)][:6]
+        qa_step = max(1, len(real_text_sents) // 6)
+        qa_sample = real_text_sents[::qa_step][:6]
+
         for idx, s in enumerate(qa_sample):
-            words = [w.strip(":,.-'\"()") for w in s['text'].split() if len(w) > 4 and w.isalpha()]
+            words = [w.strip(":,.-'\"()") for w in s['text'].split() if len(w) > 4 and w.isalpha() and not w.startswith('[')]
             topic_word = words[0] if words else "Core Concept"
             qa_items.append(
                 f"{idx+1}. **Q: Explain the significance of '{topic_word}' discussed on Page {s['page']}?**\n"

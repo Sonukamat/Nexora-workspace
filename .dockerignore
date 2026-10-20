@@ -1,0 +1,16 @@
+__pycache__
+*.py[cod]
+*$py.class
+.git
+.gitignore
+.env
+.env.*
+*.pdf
+*.pptx
+*.docx
+venv
+.venv
+data/chroma_db/*
+!data/chroma_db/.gitkeep
+data/uploads/*
+!data/uploads/.gitkeep
