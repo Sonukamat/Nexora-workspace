@@ -71,7 +71,11 @@ def sync_existing_documents():
             except Exception as e:
                 print(f"[Nexora Startup] Error restoring {filename}: {e}")
 
-sync_existing_documents()
+@app.on_event("startup")
+async def startup_event():
+    import asyncio
+    # Run sync in background so server opens port immediately (fixes Render port scan timeout)
+    asyncio.create_task(asyncio.to_thread(sync_existing_documents))
 
 # Serve CSS and JS explicitly with proper MIME types
 @app.get("/styles.css")

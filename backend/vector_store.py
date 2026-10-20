@@ -31,6 +31,12 @@ class VectorStore:
             self.chroma_collection = None
 
         try:
+            import torch
+            torch.set_num_threads(1)
+        except Exception:
+            pass
+
+        try:
             from sentence_transformers import SentenceTransformer
             try:
                 # Load instantly from local offline cache to prevent HuggingFace network timeouts
