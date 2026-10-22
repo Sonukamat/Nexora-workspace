@@ -108,6 +108,20 @@ class AgentManager:
             thoughts.append(f"⚙️ [User Override]: Active Agent forced to -> **{selected_agent_name}**")
 
         # Step 2: Vector Search & Chunk Retrieval
+        # Auto-scope to specific document if user mentions its filename in the query
+        if not file_id and not file_ids:
+            q_lower = query.lower()
+            all_files = list(set([c.get('filename', '') for c in self.vector_store.chunks_db]))
+            for fn in all_files:
+                if fn:
+                    fn_base = fn.split('.')[0].lower()
+                    if fn.lower() in q_lower or (len(fn_base) >= 3 and fn_base in q_lower):
+                        matched_chunk = next((c for c in self.vector_store.chunks_db if c.get('filename') == fn), None)
+                        if matched_chunk:
+                            file_id = matched_chunk.get('file_id')
+                            thoughts.append(f"🎯 [Scope Target]: Auto-scoped query to `{fn}` based on user prompt.")
+                            break
+
         thoughts.append(f"🔍 [Vector Engine]: Performing target similarity search for '{query}'...")
         
         # Perform query-focused similarity search so specific chapters/topics are retrieved!

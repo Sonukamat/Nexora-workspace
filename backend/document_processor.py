@@ -62,24 +62,57 @@ class DocumentProcessor:
 
     def _extract_pdf(self, file_path, max_pages=150):
         pages = []
+        doc_title = ""
+        total_pages = 0
+
+        # 1. Try PyMuPDF (fitz) - fastest, handles modern font encodings & vector text
         try:
-            from pypdf import PdfReader
-            reader = PdfReader(file_path)
-            total = min(len(reader.pages), max_pages)
-            for idx in range(total):
+            import fitz
+            doc = fitz.open(file_path)
+            total_pages = min(len(doc), max_pages)
+            meta = doc.metadata or {}
+            doc_title = (meta.get('title') or "").strip()
+            for idx in range(total_pages):
                 try:
-                    page = reader.pages[idx]
-                    text = page.extract_text() or ""
-                    if text.strip():
-                        pages.append((idx + 1, text))
+                    t = doc[idx].get_text() or ""
+                    if t.strip():
+                        pages.append((idx + 1, t))
                 except Exception:
                     continue
         except Exception as e:
-            print(f"[DocumentProcessor] PyPDF extraction fallback: {e}")
-            pages = self._extract_text(file_path)
+            print(f"[DocumentProcessor] PyMuPDF extraction: {e}")
 
+        # 2. Try PyPDF fallback if PyMuPDF didn't find text
         if not pages:
-            pages = self._extract_text(file_path)
+            try:
+                from pypdf import PdfReader
+                reader = PdfReader(file_path)
+                total_pages = min(len(reader.pages), max_pages)
+                if not doc_title and reader.metadata:
+                    doc_title = str(reader.metadata.get('/Title') or "").strip()
+                for idx in range(total_pages):
+                    try:
+                        page = reader.pages[idx]
+                        t = page.extract_text() or ""
+                        if t.strip():
+                            pages.append((idx + 1, t))
+                    except Exception:
+                        continue
+            except Exception as e:
+                print(f"[DocumentProcessor] PyPDF extraction fallback: {e}")
+
+        # 3. If PDF contains visual drawings, scans, or graphics with no text layer:
+        # Provide clean structured page descriptors - NEVER read raw binary PDF as text!
+        if not pages:
+            filename = os.path.basename(file_path)
+            clean_title = f" ({doc_title})" if doc_title else ""
+            num_pages = total_pages if total_pages > 0 else 1
+            for p in range(1, num_pages + 1):
+                pages.append((
+                    p,
+                    f"Document '{filename}'{clean_title} [Page {p} of {num_pages}]: "
+                    f"This page contains visual illustrations, artwork, or vector script without an embedded digital text layer."
+                ))
 
         return pages
 

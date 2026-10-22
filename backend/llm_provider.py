@@ -6,6 +6,9 @@ import re
 try:
     from dotenv import load_dotenv
     load_dotenv()
+    env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
 except Exception:
     pass
 
@@ -155,7 +158,7 @@ class LLMProvider:
             {"role": "system", "content": system_prompt + "\nAlways answer in comprehensive, professional, academic English with clean structure and ground your facts directly in the source text."},
             {"role": "user", "content": f"Context Information:\n{context_str}\n\nUser Request: {user_prompt}"}
         ]
-        models = ["llama-3.3-70b-versatile", "llama3-70b-8192", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]
+        models = ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 
         for model_name in models:
             try:
