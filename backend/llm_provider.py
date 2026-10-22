@@ -25,9 +25,9 @@ class LLMProvider:
 
 
     def generate(self, system_prompt: str, user_prompt: str, context_chunks: list, agent_name: str) -> str:
-        # Build clean context string
+        # Build clean context string (safe token limit)
         context_str = ""
-        for idx, c in enumerate(context_chunks):
+        for idx, c in enumerate(context_chunks[:12]):
             context_str += f"\n--- Source Document: {c.get('filename', 'Doc')} (Page {c.get('page_number', 1)}) [Ref #{idx+1}] ---\n{c.get('text', '')}\n"
 
         # 1. Try Groq API (Free Tier LLaMA 3.3 / LLaMA 3.1) if key present
@@ -158,7 +158,7 @@ class LLMProvider:
             {"role": "system", "content": system_prompt + "\nAlways answer in comprehensive, professional, academic English with clean structure and ground your facts directly in the source text."},
             {"role": "user", "content": f"Context Information:\n{context_str}\n\nUser Request: {user_prompt}"}
         ]
-        models = ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+        models = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b", "allam-2-7b"]
 
         for model_name in models:
             try:
