@@ -219,13 +219,14 @@ class DocumentProcessor:
         chunks = []
         chunk_counter = 0
 
+        is_large_doc = len(pages_data) > 20
+        effective_chunk_size = 350 if is_large_doc else (100 if filename.lower().endswith(('.pptx', '.ppt')) else 200)
+        effective_overlap = 50 if is_large_doc else self.chunk_overlap
+
         for page_num, page_text in pages_data:
             words = page_text.split()
             if not words:
                 continue
-
-            # Page/Slide level chunking (200 words per chunk for PDF/DOCX, 100 words for PPTX)
-            effective_chunk_size = 100 if filename.lower().endswith(('.pptx', '.ppt')) else 200
 
             i = 0
             while i < len(words):
@@ -244,8 +245,8 @@ class DocumentProcessor:
                 })
 
                 chunk_counter += 1
-                i += (effective_chunk_size - self.chunk_overlap)
-                if i <= 0 or effective_chunk_size <= self.chunk_overlap:
+                i += (effective_chunk_size - effective_overlap)
+                if i <= 0 or effective_chunk_size <= effective_overlap:
                     i = len(words)
 
         return chunks

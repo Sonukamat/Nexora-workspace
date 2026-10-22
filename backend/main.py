@@ -110,19 +110,23 @@ async def upload_document(file: UploadFile = File(...)):
         # Index chunks in Vector Database
         vector_store.add_chunks(doc_result["chunks"])
 
-        uploaded_docs.append({
+        doc_summary = {
             "file_id": doc_result["file_id"],
             "filename": doc_result["filename"],
             "file_type": doc_result["file_type"],
             "total_pages": doc_result["total_pages"],
             "total_chunks": doc_result["total_chunks"],
             "uploaded_at": doc_result["uploaded_at"]
-        })
+        }
+        uploaded_docs.append(doc_summary)
+
+        import gc
+        gc.collect()
 
         return JSONResponse({
             "status": "success",
-            "message": f"Document '{file.filename}' processed & indexed into ChromaDB successfully.",
-            "document": doc_result
+            "message": f"Document '{file.filename}' processed & indexed successfully.",
+            "document": doc_summary
         })
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to process document: {str(e)}")

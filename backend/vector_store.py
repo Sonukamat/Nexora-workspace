@@ -20,14 +20,24 @@ class VectorStore:
 
     def _init_store(self):
         os.makedirs(self.persist_directory, exist_ok=True)
-        # Try initializing ChromaDB & SentenceTransformers if available
+        # On Render Free Tier (512MB RAM), heavy PyTorch/SentenceTransformers (400MB) causes OOM restarts.
+        # Check if running in cloud (Render) or if lightweight mode is forced:
+        is_cloud_env = (os.environ.get("RENDER") is not None or os.environ.get("LOW_MEMORY_MODE", "0") == "1")
+
+        if is_cloud_env:
+            print("[VectorStore] Cloud / Memory-safe mode active (<50MB RAM). Using Native Fast Vector Ranker.")
+            self.chroma_collection = None
+            self.embedder = None
+            return
+
+        # Try initializing ChromaDB & SentenceTransformers for local high-memory machines
         try:
             import chromadb
             client = chromadb.PersistentClient(path=self.persist_directory)
             self.chroma_collection = client.get_or_create_collection(name="nexora_knowledge_base")
             print("[VectorStore] ChromaDB initialized successfully.")
         except BaseException as e:
-            print(f"[VectorStore] ChromaDB init error ({e}). Using Native High-Speed Cosine Vector Engine.")
+            print(f"[VectorStore] ChromaDB init fallback: {e}")
             self.chroma_collection = None
 
         try:
@@ -54,25 +64,28 @@ class VectorStore:
         # 1. Store in memory DB instantly
         self.chunks_db.extend(chunks)
 
-        # 2. Batch encode into ChromaDB (100x faster than sequential loop)
+        # 2. Batch encode into ChromaDB safely in small batches
         if self.chroma_collection and self.embedder:
             try:
-                texts = [c['text'] for c in chunks]
-                ids = [c['chunk_id'] for c in chunks]
-                metadatas = [{
-                    "file_id": c['file_id'],
-                    "filename": c['filename'],
-                    "page_number": c.get('page_number', 1)
-                } for c in chunks]
+                batch_size = 32
+                for b_start in range(0, len(chunks), batch_size):
+                    batch = chunks[b_start:b_start + batch_size]
+                    texts = [c['text'] for c in batch]
+                    ids = [c['chunk_id'] for c in batch]
+                    metadatas = [{
+                        "file_id": c['file_id'],
+                        "filename": c['filename'],
+                        "page_number": c.get('page_number', 1)
+                    } for c in batch]
 
-                embeddings = self.embedder.encode(texts, batch_size=64, show_progress_bar=False).tolist()
+                    embeddings = self.embedder.encode(texts, batch_size=32, show_progress_bar=False).tolist()
 
-                self.chroma_collection.add(
-                    ids=ids,
-                    embeddings=embeddings,
-                    documents=texts,
-                    metadatas=metadatas
-                )
+                    self.chroma_collection.add(
+                        ids=ids,
+                        embeddings=embeddings,
+                        documents=texts,
+                        metadatas=metadatas
+                    )
             except Exception as e:
                 print(f"[VectorStore] ChromaDB batch add fallback: {e}")
 
