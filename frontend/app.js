@@ -106,6 +106,10 @@ async function handleFileUpload(file) {
             method: "POST",
             body: formData
         });
+        if (!resp.ok) {
+            const errText = await resp.text();
+            throw new Error(`Server returned ${resp.status}: ${errText || 'Upload interrupted'}`);
+        }
         const data = await resp.json();
 
         if (fill) fill.style.width = "100%";

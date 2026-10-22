@@ -51,7 +51,7 @@ uploaded_docs = []
 def sync_existing_documents():
     global uploaded_docs
     if os.path.exists(UPLOAD_DIR):
-        existing_files = [f for f in os.listdir(UPLOAD_DIR) if os.path.isfile(os.path.join(UPLOAD_DIR, f))]
+        existing_files = [f for f in os.listdir(UPLOAD_DIR) if os.path.isfile(os.path.join(UPLOAD_DIR, f)) and not f.startswith('.')]
         for filename in existing_files:
             file_path = os.path.join(UPLOAD_DIR, filename)
             if any(d["filename"] == filename for d in uploaded_docs):
