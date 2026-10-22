@@ -180,6 +180,37 @@ class LLMProvider:
 
         return None
 
+    def _sample_diverse_page_sentences(self, sents: list, count: int = 6) -> list:
+        if not sents:
+            return []
+        if len(sents) <= count:
+            return sents
+
+        page_dict = {}
+        for s in sents:
+            page_dict.setdefault(s.get('page', 1), []).append(s)
+
+        pages = sorted(page_dict.keys())
+        selected = []
+        step = max(1, len(pages) // count)
+        picked_pages = [pages[i] for i in range(0, len(pages), step)][:count]
+
+        for p in picked_pages:
+            best_sent = max(page_dict[p], key=lambda x: len(x['text']))
+            selected.append(best_sent)
+
+        if len(selected) < count:
+            seen_texts = set(s['text'] for s in selected)
+            for s in sents:
+                if s['text'] not in seen_texts:
+                    selected.append(s)
+                    seen_texts.add(s['text'])
+                    if len(selected) >= count:
+                        break
+
+        selected.sort(key=lambda x: x.get('page', 1))
+        return selected
+
     def _deep_nlp_extractive_synthesizer(self, user_prompt: str, context_chunks: list, agent_name: str) -> str:
         if not context_chunks:
             return f"**[{agent_name}]**: No document context found. Please upload a document to analyze."
@@ -231,17 +262,17 @@ class LLMProvider:
             # Universal Section Distribution across the entire document page spectrum
             total_s = len(all_sentences)
             step = max(1, total_s // 5)
-            sec1_sents = all_sentences[0:step]
-            sec2_sents = all_sentences[step:step*2]
-            sec3_sents = all_sentences[step*2:step*3]
-            sec4_sents = all_sentences[step*3:step*4]
-            sec5_sents = all_sentences[step*4:]
+            sec1_sents = self._sample_diverse_page_sentences(all_sentences[0:step], 5)
+            sec2_sents = self._sample_diverse_page_sentences(all_sentences[step:step*2], 5)
+            sec3_sents = self._sample_diverse_page_sentences(all_sentences[step*2:step*3], 5)
+            sec4_sents = self._sample_diverse_page_sentences(all_sentences[step*3:step*4], 5)
+            sec5_sents = self._sample_diverse_page_sentences(all_sentences[step*4:], 5)
 
-            sec1 = "\n".join([f"• **[Page/Slide {s['page']}]**: {s['text']}" for s in sec1_sents[:6]])
-            sec2 = "\n".join([f"• **[Page/Slide {s['page']}]**: {s['text']}" for s in sec2_sents[:6]])
-            sec3 = "\n".join([f"• **[Page/Slide {s['page']}]**: {s['text']}" for s in sec3_sents[:6]])
-            sec4 = "\n".join([f"• **[Page/Slide {s['page']}]**: {s['text']}" for s in sec4_sents[:6]])
-            sec5 = "\n".join([f"• **[Page/Slide {s['page']}]**: {s['text']}" for s in sec5_sents[:6]])
+            sec1 = "\n".join([f"• **[Page/Slide {s['page']}]**: {s['text']}" for s in sec1_sents])
+            sec2 = "\n".join([f"• **[Page/Slide {s['page']}]**: {s['text']}" for s in sec2_sents])
+            sec3 = "\n".join([f"• **[Page/Slide {s['page']}]**: {s['text']}" for s in sec3_sents])
+            sec4 = "\n".join([f"• **[Page/Slide {s['page']}]**: {s['text']}" for s in sec4_sents])
+            sec5 = "\n".join([f"• **[Page/Slide {s['page']}]**: {s['text']}" for s in sec5_sents])
 
             return (
                 f"**\"{doc_name}\"** contains comprehensive material covering pages/slides 1 to {max_pg}.\n\n"
@@ -568,10 +599,15 @@ class LLMProvider:
             deep_analysis_sents = [s for s in sentences if p_q2 < s['page'] <= p_q3] or sentences[15:25]
             conclusion_sents = [s for s in sentences if s['page'] > p_q3] or sentences[-5:]
 
-            overview_text = " ".join([s['text'] for s in overview_sents[:6]])
-            key_points_formatted = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in key_points_sents[:8]])
-            deep_analysis_formatted = "\n\n".join([f"**Analysis (Page {s['page']})**:\n{s['text']}" for s in deep_analysis_sents[:8]])
-            conclusions_formatted = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in conclusion_sents[:8]])
+            overview_sampled = self._sample_diverse_page_sentences(overview_sents, 5)
+            key_points_sampled = self._sample_diverse_page_sentences(key_points_sents, 6)
+            deep_analysis_sampled = self._sample_diverse_page_sentences(deep_analysis_sents, 6)
+            conclusion_sampled = self._sample_diverse_page_sentences(conclusion_sents, 6)
+
+            overview_text = "\n\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in overview_sampled])
+            key_points_formatted = "\n\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in key_points_sampled])
+            deep_analysis_formatted = "\n\n".join([f"**Analysis (Page {s['page']})**:\n{s['text']}" for s in deep_analysis_sampled])
+            conclusions_formatted = "\n\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in conclusion_sampled])
 
             return (
                 f"# 📋 Executive Briefing Document: `{primary_doc}`\n"
@@ -590,17 +626,19 @@ class LLMProvider:
             )
 
         elif artifact_type == "study_guide":
-            terms_formatted = "\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in sentences[:18]])
+            terms_sampled = self._sample_diverse_page_sentences(sentences, 12)
+            terms_formatted = "\n\n".join([f"• **[Page {s['page']}]**: {s['text']}" for s in terms_sampled])
             
+            qa_sampled = self._sample_diverse_page_sentences(sentences[12:] if len(sentences) >= 20 else sentences, 8)
             qa_list = []
-            for idx, s in enumerate(sentences[18:28] if len(sentences) >= 28 else sentences[4:]):
+            for idx, s in enumerate(qa_sampled):
                 words = [w for w in s['text'].split() if len(w) > 4]
                 topic_kw = words[0] if words else "Subject Topic"
                 qa_list.append(
                     f"**Q{idx+1}: What is the significance of {topic_kw} discussed on Page {s['page']}?**\n"
                     f"*Answer*: \"{s['text']}\"\n"
                 )
-            qa_formatted = "\n".join(qa_list)
+            qa_formatted = "\n\n".join(qa_list)
 
             return (
                 f"# 🎓 Comprehensive Study & Revision Guide: `{primary_doc}`\n\n"
